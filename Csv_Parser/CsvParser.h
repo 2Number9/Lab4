@@ -16,7 +16,7 @@ namespace parser {
 		std::string message;
 	};
 
-	bool is_string_element(std::string element) {
+	bool detecting_strings_with_spaces(std::string element) {
 		int amount_of_blocks_of_symbols = 0;
 		int previous_amount;
 		while (element.length() > 0) {
@@ -49,7 +49,6 @@ namespace parser {
 	std::string erasing_last_spaces_for_number(std::string str) {
 		while ((str.length() > 0) && (str[str.length()-1] == ' '))
 			str.erase(str.length()-1, 1);
-		//std::cout << "str == " << str << " str.length() == " << str.length() << std::endl;
 		return str;
 	}
 
@@ -62,103 +61,75 @@ namespace parser {
 	}
 
 	int is_bool(std::string str) {
-		if ((str.find("false") != std::string::npos) || (str.find("False") != std::string::npos))
+		while ((str.length() > 0) && (str[0] == ' '))
+			str.erase(0, 1);
+		while ((str.length() > 0) && (str[str.length() - 1] == ' '))
+			str.erase(str.length() - 1, 1);
+	
+		if ((str == "false") || (str == "False"))
 			return 2;
 		else
-			if ((str.find("true") != std::string::npos) || (str.find("True") != std::string::npos))
+			if ((str == "true") || (str == "True"))
 				return 1;
 			else 
 				return 0;
 	}
 
+	int amount_of_digits(int paramether) {
+		int result = 0;
+		while (paramether > 9) {
+			result++;
+			paramether /= 10;
+		}
+		return result;
+	}
+
 	template<size_t I, typename... Args>
-	auto ParseElement(std::istringstream& element, std::tuple<Args...> &tupix) { //
+	auto ParseElement(std::istringstream& element, std::tuple<Args...> &tupix) {
 		std::string current_element;
 		std::getline(element, current_element, ',');
-		if (!(is_string_element(current_element)))
+		if (!(detecting_strings_with_spaces(current_element)))
 			if (is_numeric(current_element))
 				current_element = erasing_last_spaces_for_number(current_element);
-		//std::cout << "current_elementeee == " << current_element << " current_element.length() == " << current_element.length() << std::endl;
 		
-		try {								   //сделать так, чтобы пробелы тоже считывались
+		try {
 
-			//std::stringstream ss(current_element); //позволяет преобразовывать строки в различные типы данных
 			
-												  //как числа, даже если они как числа
-			int bitch = is_bool(current_element);
-			if ((!(is_string_element(current_element))) && ((is_numeric(current_element)) || (bitch > 0))) {
-				if (bitch == 1) {
+			int kinda_bool = is_bool(current_element);
+			if ((!(detecting_strings_with_spaces(current_element))) && ((is_numeric(current_element)) || (kinda_bool > 0))) {
+				if (kinda_bool == 1) {
 					current_element = "1";
-					//std::cout << "huya: " << current_element << std::endl;
 				}
 				else
-					if (bitch == 2) {
+					if (kinda_bool == 2) {
 						current_element = "0";
-						//std::cout << "nihuya: " << current_element << std::endl;
 					}
 				std::stringstream ss(current_element);
-				//std::cout << "ss.str() == " << ss.str() << " ss.str().length() == " << ss.str().length() << std::endl;
-				//std::cout << "std::get<I>(tupix) == " << std::get<I>(tupix) << std::endl;
-				
 				if (!(ss >> std::get<I>(tupix)))
 					throw std::invalid_argument("Wrong element");
+				ss.tellg();
+				if ((static_cast<size_t> (ss.str().length()) != current_element.length()) || (!(ss.fail())))
+					throw std::invalid_argument("Wrong element");
+
 			}
 			else {
-				//std::stringstream cc("");
-				//std::cout << "cc.str() == " << cc.str() << std::endl;
-				//if (!(cc >> std::get<I>(tupix))) {
-					//std::cout << "";
-				//}
-				while (current_element.length() > 0) {
-					std::get<I>(tupix) += current_element[0];
-					current_element.erase(0, 1);
-				}
-				//std::cout << "babidjon.str() == " << std::get<I>(tupix) << std::endl;
-				//if (!(ss >> std::get<I>(tupix)))
-					//throw std::invalid_argument("Wrong element");
-				//std::cout << "after bobij: " << std::get<I>(tupix) << std::endl;
-			}
 
-
-
-			/*if ((!(is_numeric(current_element))) || (is_string_element(current_element))) {
-				
-				//std::cout << "zalupa happend with current_element: " << current_element << std::endl;
-					//throw std::invalid_argument("Wrong element eblan");
-				char zalupa;
-				//while ((current_element.length() > 0) && (current_element[0] != ' ')) { //убираем вошедшую строку
-					//std::get<I>(tupix) += current_element[0];
-					//current_element.erase(0, 1);
-						//std::cout << "editing: " << current_element << std::endl;
-									//std::get<I>(tupix) += 'c';
-				std::string huijopa = "";
-				std::stringstream chlen(huijopa);
-				chlen >> std::get<I>(tupix);
-				std::cout << "chlen.std::get<I>(tupix) == " << std::get<I>(tupix) << std::endl;
-				while (true) {
-					while ((current_element.length() > 0) && (current_element[0] != ' ')) {
-						std::get<I>(tupix) += current_element[0];
-						current_element.erase(0, 1);
-						std::cout << "editing: " << current_element << std::endl;
-					}
-					//std::cout << "jopa.ss.str() == " << ss.str() << std::endl;
-					while ((current_element.length() > 0) && (current_element[0] == ' ')) {
-						//std::cout << "jopa: " << current_element << "current_element[0] == " << current_element[0] << std::endl;
-						zalupa = current_element[0];
-						current_element.erase(0, 1);
-						std::get<I>(tupix) += zalupa;
-					}
-					if (current_element.length() == 0)
-						break;
-					std::stringstream ss(current_element);
-
-				}
-			}
-			else {
-				std::cout << "std::get<I>(tupix) == " << std::get<I>(tupix) << std::endl;
+				std::stringstream ss(current_element);
 				if (!(ss >> std::get<I>(tupix)))
 					throw std::invalid_argument("Wrong element");
-			}*/
+				else {
+					if (!(ss.eof())) {
+						for (int i = ss.tellg(); i < current_element.length(); i++)
+							std::get<I>(tupix) += current_element[i];
+					}
+				}
+
+				
+			}
+
+
+
+			
 		}
 		catch (const std::invalid_argument& except) {
 			throw I + 1;
@@ -175,11 +146,10 @@ namespace parser {
 			return in;
 		std::istringstream element(str);
 		try {
-			//std::cout << "element == " << str << std::endl;
 			parser::ParseElement<0>(element, tupix);
 		}
 		catch (const size_t column) {
-			throw ParsingException("Parsing Error in " + std::to_string(line + 1) + "line, " + std::to_string(column + 1) + "column");
+			throw ParsingException("Parsing Error in " + std::to_string(line+1) + "line, " + std::to_string(column) + "column");
 		}
 		return in;
 	}
@@ -226,9 +196,7 @@ namespace parser {
 				if (in == nullptr) {
 					return *this;
 				}
-				//std::cout << "tupix: " << tupix << std::endl;
-				std::tuple<std::string, std::string, int, float, bool> billy{ "", "", 0, 0, false };
-				tupix = billy;
+				position++;
 				parser::ParseLine(*in, tupix, position);
 				if (in->eof()) {
 					in = nullptr;
@@ -237,7 +205,7 @@ namespace parser {
 					return *this;
 				}
 				
-				position++;
+			
 				return *this;
 			}
 
@@ -254,7 +222,7 @@ namespace parser {
 
 		CsvParser(std::ifstream& input, size_t skip_count) {
 			if ((input.peek() == EOF) || (input.peek() == '\n'))
-				throw std::invalid_argument("Empty file buddy");
+				throw std::invalid_argument("Empty file");
 			std::string str;
 			for (int i = 0; i < skip_count; i++) {
 				std::getline(input, str);
