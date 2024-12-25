@@ -2,6 +2,7 @@
 #include <string>
 #include <stdexcept>
 #include <sstream>
+#include <fstream>
 #include <iostream>
 
 
@@ -84,6 +85,26 @@ namespace parser {
 		return result;
 	}
 
+	std::string first_string_in_current_element(std::string current_element) {
+		while ((current_element.length() > 0) && (current_element[0] == ' '))
+			current_element.erase(0, 1);
+		std::string returning_value = "";
+		while ((current_element.length() > 0) && (current_element[0] != ' ')) {
+			returning_value += current_element[0];
+			current_element.erase(0, 1);
+		}
+		return returning_value;
+	}
+
+	bool digits_before_chars(std::string str) {
+		while (str.length() > 0) {
+			str.erase(0, 1);
+			if ((str[0] <= '9') && (str[0] >= '0'))
+				return true;
+		}
+		return false;
+	}
+
 	template<size_t I, typename... Args>
 	auto ParseElement(std::istringstream& element, std::tuple<Args...> &tupix) {
 		std::string current_element;
@@ -95,7 +116,13 @@ namespace parser {
 		try {
 
 			
-			int kinda_bool = is_bool(current_element);
+			int kinda_bool = is_bool(current_element); //check if current_element == "true"/"false", 1 == true, 2 == false
+			//сюда попадают строки, представленные блоком символов без пробелов и посторонних для чисел
+			//или bool символов, то есть такие строки имеют шанс быть присвоены как std::get<I> типа string, так и
+			//int, double, float, bool и т.д.
+			//то есть если в строке есть посторонние для этих типов символы, мы даже не смотрим, или если строка
+			//представлена двумя и более блоками символов, это точно не сюда, это сто процентно на входе string,
+			//проверим дальше
 			if ((!(detecting_strings_with_spaces(current_element))) && ((is_numeric(current_element)) || (kinda_bool > 0))) {
 				if (kinda_bool == 1) {
 					current_element = "1";
@@ -108,11 +135,19 @@ namespace parser {
 				if (!(ss >> std::get<I>(tupix)))
 					throw std::invalid_argument("Wrong element");
 				ss.tellg();
-				if ((static_cast<size_t> (ss.str().length()) != current_element.length()) || (!(ss.fail())))
+				if (!(ss.fail()))	
 					throw std::invalid_argument("Wrong element");
 
 			}
+			//теперь проверяем входные данные, которые не подходят не под какие типы, кроме string, то есть
+			//если std::get<I> запрашивает любой другой тип для таких строк, что сюда попадают, будет exception
 			else {
+				std::string try_value = "str";
+				std::stringstream sss(try_value);
+				std::string first_str_in_current_element = first_string_in_current_element(current_element);
+				if ((((is_numeric(first_str_in_current_element))) || (digits_before_chars(current_element))) && (!(sss >> std::get<I>(tupix)))) {
+					throw std::invalid_argument("Wrong element");
+				}
 
 				std::stringstream ss(current_element);
 				if (!(ss >> std::get<I>(tupix)))
@@ -127,9 +162,6 @@ namespace parser {
 				
 			}
 
-
-
-			
 		}
 		catch (const std::invalid_argument& except) {
 			throw I + 1;
@@ -173,21 +205,15 @@ namespace parser {
 			~Iterator() = default;
 
 			bool operator==(const Iterator& b) {
-				if (in != b.in) {
+				if (in != b.in)
 					return false;
-				}
-				else {
-					if (position != b.position)
-						return false;
-					else
-						return true;
-				}
+				else
+					return (position == b.position);
 			}
 
 			bool operator!=(const Iterator& b) {
-				if (in != b.in) {
+				if (in != b.in)
 					return true;
-				}
 				else
 					return (position != b.position);
 			}
@@ -200,12 +226,11 @@ namespace parser {
 				parser::ParseLine(*in, tupix, position);
 				if (in->eof()) {
 					in = nullptr;
-					std::cout << tupix << std::endl;
+					std::cout << tupix << std::endl; //
 					position = -1;
 					return *this;
 				}
 				
-			
 				return *this;
 			}
 

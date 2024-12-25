@@ -9,4 +9,4 @@ project(Csv_Parser)
 set(exe_name ${PROJECT_NAME})
 
 # описываем исполняемый файл основной программы: это main.cpp + основная библиотека
-add_executable(${exe_name} main.cpp)
+add_executable(${exe_name} main_csv.cpp)
