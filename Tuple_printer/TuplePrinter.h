@@ -1,9 +1,10 @@
 #pragma once
 #include <tuple>
+#include <string>
 #include <iostream>
 
 template<size_t size>
-struct dummy {}; //скобки обязательны по синтаксису
+struct dummy {}; 
 
 template <typename Tuple, size_t size>
 std::ostream& print_tuple(std::ostream& out, Tuple& t, dummy<size>) {
@@ -13,7 +14,7 @@ std::ostream& print_tuple(std::ostream& out, Tuple& t, dummy<size>) {
 
 template <typename Tuple>
 std::ostream& print_tuple(std::ostream& out, Tuple& t, dummy<1>) {
-	return out << std::get<std::tuple_size<Tuple>::value - 1>(t); //std::tuple_size<type>::value - размер кортежа
+	return out << std::get<std::tuple_size<Tuple>::value - 1>(t);
 }
 
 
