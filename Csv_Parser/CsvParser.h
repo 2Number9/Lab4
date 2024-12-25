@@ -7,7 +7,7 @@
 
 
 namespace parser {
-	class ParsingException : public std::runtime_error {
+	class ParsingException : public std::runtime_error { //ошибки именно во время выполнения, поэтому от std::runtime_error
 	public:
 		ParsingException(std::string message) : std::runtime_error(""), message(message) {}
 		const char* what() const noexcept override {
@@ -61,7 +61,7 @@ namespace parser {
 		return true;
 	}
 
-	int is_bool(std::string str) {
+	int check_on_bool_value(std::string str) {
 		while ((str.length() > 0) && (str[0] == ' '))
 			str.erase(0, 1);
 		while ((str.length() > 0) && (str[str.length() - 1] == ' '))
@@ -76,53 +76,23 @@ namespace parser {
 				return 0;
 	}
 
-	int amount_of_digits(int paramether) {
-		int result = 0;
-		while (paramether > 9) {
-			result++;
-			paramether /= 10;
-		}
-		return result;
-	}
-
-	std::string first_string_in_current_element(std::string current_element) {
-		while ((current_element.length() > 0) && (current_element[0] == ' '))
-			current_element.erase(0, 1);
-		std::string returning_value = "";
-		while ((current_element.length() > 0) && (current_element[0] != ' ')) {
-			returning_value += current_element[0];
-			current_element.erase(0, 1);
-		}
-		return returning_value;
-	}
-
-	bool digits_before_chars(std::string str) {
-		while (str.length() > 0) {
-			str.erase(0, 1);
-			if ((str[0] <= '9') && (str[0] >= '0'))
-				return true;
-		}
-		return false;
-	}
-
+	
 	template<size_t I, typename... Args>
-	auto ParseElement(std::istringstream& element, std::tuple<Args...> &tupix) {
+	void ParseElement(std::istringstream& element, std::tuple<Args...> &tuple_value) {
 		std::string current_element;
 		std::getline(element, current_element, ',');
+
+		bool inserting_in_string_std_get;
+		std::stringstream sss("str");
+		inserting_in_string_std_get = (!(sss >> std::get<I>(tuple_value)));
 		if (!(detecting_strings_with_spaces(current_element)))
-			if (is_numeric(current_element))
+			if ((inserting_in_string_std_get) && (is_numeric(current_element)))
 				current_element = erasing_last_spaces_for_number(current_element);
 		
 		try {
-
 			
-			int kinda_bool = is_bool(current_element); //check if current_element == "true"/"false", 1 == true, 2 == false
-			//сюда попадают строки, представленные блоком символов без пробелов и посторонних для чисел
-			//или bool символов, то есть такие строки имеют шанс быть присвоены как std::get<I> типа string, так и
-			//int, double, float, bool и т.д.
-			//то есть если в строке есть посторонние для этих типов символы, мы даже не смотрим, или если строка
-			//представлена двумя и более блоками символов, это точно не сюда, это сто процентно на входе string,
-			//проверим дальше
+			int kinda_bool = check_on_bool_value(current_element);
+			
 			if ((!(detecting_strings_with_spaces(current_element))) && ((is_numeric(current_element)) || (kinda_bool > 0))) {
 				if (kinda_bool == 1) {
 					current_element = "1";
@@ -132,56 +102,58 @@ namespace parser {
 						current_element = "0";
 					}
 				std::stringstream ss(current_element);
-				if (!(ss >> std::get<I>(tupix)))
+				if (!(ss >> std::get<I>(tuple_value)))
 					throw std::invalid_argument("Wrong element");
-				ss.tellg();
-				if (!(ss.fail()))	
-					throw std::invalid_argument("Wrong element");
-
+				ss.tellg(); 
+				if (!(ss.fail())) {
+					if (!inserting_in_string_std_get) {
+						for (int i = ss.tellg(); i < current_element.length(); i++)
+							std::get<I>(tuple_value) += current_element[i];
+					}
+					else
+						throw std::invalid_argument("Wrong element");
+				}
 			}
-			//теперь проверяем входные данные, которые не подходят не под какие типы, кроме string, то есть
-			//если std::get<I> запрашивает любой другой тип для таких строк, что сюда попадают, будет exception
+			
 			else {
-				std::string try_value = "str";
-				std::stringstream sss(try_value);
-				std::string first_str_in_current_element = first_string_in_current_element(current_element);
-				if ((((is_numeric(first_str_in_current_element))) || (digits_before_chars(current_element))) && (!(sss >> std::get<I>(tupix)))) {
+				
+				std::stringstream sss("str");
+				if ((!(sss >> std::get<I>(tuple_value)))) {
 					throw std::invalid_argument("Wrong element");
 				}
 
 				std::stringstream ss(current_element);
-				if (!(ss >> std::get<I>(tupix)))
+				if (!(ss >> std::get<I>(tuple_value)))
 					throw std::invalid_argument("Wrong element");
 				else {
 					if (!(ss.eof())) {
 						for (int i = ss.tellg(); i < current_element.length(); i++)
-							std::get<I>(tupix) += current_element[i];
+							std::get<I>(tuple_value) += current_element[i];
 					}
 				}
-
 				
 			}
 
 		}
 		catch (const std::invalid_argument& except) {
-			throw I + 1;
+			throw I;
 		}
 		if constexpr (I + 1 < sizeof... (Args))
-			ParseElement<I + 1>(element, tupix);
+			ParseElement<I + 1>(element, tuple_value);
 	}
 
 	template<typename... Args>
-	std::ifstream& ParseLine(std::ifstream& in, std::tuple<Args...>& tupix, size_t line) {
+	std::ifstream& ParseLine(std::ifstream& in, std::tuple<Args...>& tuple_value, size_t line) {
 		std::string str;
 		std::getline(in, str);
 		if (str.empty())
 			return in;
 		std::istringstream element(str);
 		try {
-			parser::ParseElement<0>(element, tupix);
+			parser::ParseElement<0>(element, tuple_value);
 		}
 		catch (const size_t column) {
-			throw ParsingException("Parsing Error in " + std::to_string(line+1) + "line, " + std::to_string(column) + "column");
+			throw ParsingException("Parsing Error in " + std::to_string(line+1) + "line, " + std::to_string(column+1) + "column");
 		}
 		return in;
 	}
@@ -198,7 +170,7 @@ namespace parser {
 					position = -1;
 				}
 				else {
-					parser::ParseLine(*in, tupix, position);
+					parser::ParseLine(*in, tuple_value, position);
 				}
 			}
 
@@ -222,32 +194,37 @@ namespace parser {
 				if (in == nullptr) {
 					return *this;
 				}
-				position++;
-				parser::ParseLine(*in, tupix, position);
+
 				if (in->eof()) {
 					in = nullptr;
-					std::cout << tupix << std::endl; //
 					position = -1;
 					return *this;
 				}
-				
+				position++;
+				parser::ParseLine(*in, tuple_value, position);
 				return *this;
 			}
 
 			std::tuple<Args...> operator*() {
-				return tupix;
+				return tuple_value;
 			}
 
 
 		private:
 			std::ifstream* in;
-			std::tuple<Args...> tupix;
+			std::tuple<Args...> tuple_value;
 			size_t position = 0;
 		};
 
 		CsvParser(std::ifstream& input, size_t skip_count) {
-			if ((input.peek() == EOF) || (input.peek() == '\n'))
-				throw std::invalid_argument("Empty file");
+			try {
+				if ((input.peek() == EOF) || (input.peek() == '\n'))
+					throw std::invalid_argument("Empty file");
+			}
+			catch (std::invalid_argument& except) {
+				throw ParsingException("Empty File");
+			}
+
 			std::string str;
 			for (int i = 0; i < skip_count; i++) {
 				std::getline(input, str);
