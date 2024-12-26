@@ -143,7 +143,7 @@ namespace parser {
 	}
 
 	template<typename... Args>
-	std::ifstream& ParseLine(std::ifstream& in, std::tuple<Args...>& tuple_value, size_t line) {
+	std::istream& ParseLine(std::istream& in, std::tuple<Args...>& tuple_value, size_t line) {
 		std::string str;
 		std::getline(in, str);
 		if (str.empty())
@@ -165,7 +165,7 @@ namespace parser {
 		class Iterator {
 		public:
 
-			explicit Iterator(std::ifstream* in) : in(in) {
+			explicit Iterator(std::istream* in) : in(in) {
 				if (in == nullptr) {
 					position = -1;
 				}
@@ -211,12 +211,12 @@ namespace parser {
 
 
 		private:
-			std::ifstream* in;
+			std::istream* in;
 			std::tuple<Args...> tuple_value;
 			size_t position = 0;
 		};
 
-		CsvParser(std::ifstream& input, size_t skip_count) {
+		CsvParser(std::istream& input, size_t skip_count) {
 			try {
 				if ((input.peek() == EOF) || (input.peek() == '\n'))
 					throw std::invalid_argument("Empty file");
@@ -241,7 +241,7 @@ namespace parser {
 		}
 
 	private:
-		std::ifstream *in;
+		std::istream *in;
 
 	};
 
