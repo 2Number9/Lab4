@@ -82,11 +82,11 @@ namespace parser {
 		std::string current_element;
 		std::getline(element, current_element, ',');
 
-		bool inserting_in_string_std_get;
+		bool inserting_not_in_string_std_get;
 		std::stringstream sss("str");
-		inserting_in_string_std_get = (!(sss >> std::get<I>(tuple_value)));
+		inserting_not_in_string_std_get = (!(sss >> std::get<I>(tuple_value)));
 		if (!(detecting_strings_with_spaces(current_element)))
-			if ((inserting_in_string_std_get) && (is_numeric(current_element)))
+			if ((inserting_not_in_string_std_get) && (is_numeric(current_element)))
 				current_element = erasing_last_spaces_for_number(current_element);
 		
 		try {
@@ -106,7 +106,7 @@ namespace parser {
 					throw std::invalid_argument("Wrong element");
 				ss.tellg(); 
 				if (!(ss.fail())) {
-					if (!inserting_in_string_std_get) {
+					if (!inserting_not_in_string_std_get) {
 						for (int i = ss.tellg(); i < current_element.length(); i++)
 							std::get<I>(tuple_value) += current_element[i];
 					}

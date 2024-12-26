@@ -1,10 +1,6 @@
 #include "CsvParser.h"
 #include "TuplePrinter.h"
 
-struct noop {
-	void operator()(...) const {}
-};
-
 
 int main(int argc, char** argv) {
 	try {
@@ -19,7 +15,6 @@ int main(int argc, char** argv) {
 
 			//parser::CsvParser<bool, float, std::string> parser(in, 0);
 
-			std::cout << argv[1] << std::endl;
 			for (auto& rs : parser) {
 				std::cout << rs << std::endl;
 			}
